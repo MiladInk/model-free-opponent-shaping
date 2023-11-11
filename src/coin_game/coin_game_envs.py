@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from coin_game.coin_game_ppo_agent import PPO, Memory
+from coin_game_ppo_agent import PPO, Memory
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -132,9 +132,9 @@ class SymmetricCoinGame:
 
     def _prep_state(self):
 
-        rewards_inner_tiled = torch.tile(self.rewards_inner[None, None].T, [1, 3, 3])[:, None]
-        rewards_outer_tiled = torch.tile(self.rewards_outer[None, None].T, [1, 3, 3])[:, None]
-        dones_inner_tiled = torch.tile(self.dones_inner[None, None].T, [1, 3, 3])[:, None]
+        rewards_inner_tiled = torch.tile(self.rewards_inner[None, None].T, [1, self.env.grid_size, self.env.grid_size])[:, None]
+        rewards_outer_tiled = torch.tile(self.rewards_outer[None, None].T, [1, self.env.grid_size, self.env.grid_size])[:, None]
+        dones_inner_tiled = torch.tile(self.dones_inner[None, None].T, [1, self.env.grid_size, self.env.grid_size])[:, None]
         env_states_outer = torch.stack([self.env_states[:, 1], self.env_states[:, 0], self.env_states[:, 3], self.env_states[:, 2]], dim=1)
         return [
             torch.cat([self.env_states, rewards_inner_tiled, rewards_outer_tiled, dones_inner_tiled], axis=1),
@@ -156,8 +156,8 @@ class SymmetricCoinGame:
 
 
 class CoinGamePPO:
-    def __init__(self, b, inner_ep_len, gamma_inner=0.96, first=False):
-        self.env = CoinGameGPU(max_steps=inner_ep_len - 1, batch_size=b)
+    def __init__(self, b, inner_ep_len, gamma_inner=0.96, first=False, grid_size=3):
+        self.env = CoinGameGPU(max_steps=inner_ep_len - 1, batch_size=b, grid_size=grid_size)
         self.inner_ep_len = inner_ep_len
         self.b = b
         self.first = first
@@ -166,7 +166,7 @@ class CoinGamePPO:
         """
         Hyperparams for inner PPO
         """
-        input_shape = [4, 3, 3]
+        input_shape = [4, self.env.grid_size, self.env.grid_size]
         action_dim = 4
         n_latent_var = 8
         lr = 0.005
@@ -190,9 +190,9 @@ class CoinGamePPO:
         return self._prep_state()
 
     def _prep_state(self):
-        rewards_inner_tiled = torch.tile(self.rewards_inner[None, None].T, [1, 3, 3])[:, None]
-        rewards_outer_tiled = torch.tile(self.rewards_outer[None, None].T, [1, 3, 3])[:, None]
-        dones_inner_tiled = torch.tile(self.dones_inner[None, None].T, [1, 3, 3])[:, None]
+        rewards_inner_tiled = torch.tile(self.rewards_inner[None, None].T, [1, self.env.grid_size, self.env.grid_size])[:, None]
+        rewards_outer_tiled = torch.tile(self.rewards_outer[None, None].T, [1, self.env.grid_size, self.env.grid_size])[:, None]
+        dones_inner_tiled = torch.tile(self.dones_inner[None, None].T, [1, self.env.grid_size, self.env.grid_size])[:, None]
 
         return torch.cat([self.env_states[0], rewards_inner_tiled, rewards_outer_tiled, dones_inner_tiled], axis=1)
 

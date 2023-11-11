@@ -2,18 +2,19 @@ import torch
 import os
 import json
 from coin_game_envs import CoinGamePPO
-from coin_game.coin_game_mfos_agent import MemoryMFOS, PPOMFOS
+from coin_game_mfos_agent import MemoryMFOS, PPOMFOS
 import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--exp-name", type=str, default="")
+parser.add_argument("--exp-name", type=str, default="mfos_coin_game_milad1")
+parser.add_argument("--grid-size", type=int, default=3)
 args = parser.parse_args()
 
 if __name__ == "__main__":
     ############## Hyperparameters ##############
     batch_size = 512  # 8192 #, 32768
-    state_dim = [7, 3, 3]
+    state_dim = [7, args.grid_size, args.grid_size]
     action_dim = 4
     n_latent_var = 16  # number of variables in hidden layer
     max_episodes = 1000  # max training episodes
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     rew_means = []
 
     # env
-    env = CoinGamePPO(batch_size, inner_ep_len)
+    env = CoinGamePPO(batch_size, inner_ep_len, grid_size=args.grid_size)
 
     # training loop
     for i_episode in range(1, max_episodes + 1):
