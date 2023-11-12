@@ -3,18 +3,19 @@ import os
 import json
 import numpy as np
 from coin_game_envs import CoinGamePPO, SymmetricCoinGame
-from coin_game.coin_game_mfos_agent import MemoryMFOS, PPOMFOS
+from coin_game_mfos_agent import MemoryMFOS, PPOMFOS
 import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--exp-name", type=str, default="")
+parser.add_argument("--exp-name", type=str, default="milad_self")
+parser.add_argument("--grid-size", type=int, default=3)
 args = parser.parse_args()
 
 if __name__ == "__main__":
     ############## Hyperparameters ##############
     batch_size = 512  # 8192 #, 32768
-    state_dim = [7, 3, 3]
+    state_dim = [7, args.grid_size, args.grid_size]
     action_dim = 4
     n_latent_var = 16  # number of variables in hidden layer
 
@@ -62,9 +63,9 @@ if __name__ == "__main__":
     # running_reward = 0
     rew_means = []
 
-    env = SymmetricCoinGame(batch_size, inner_ep_len)
+    env = SymmetricCoinGame(batch_size, inner_ep_len, grid_size=args.grid_size)
     # env
-    nl_env = CoinGamePPO(batch_size, inner_ep_len)
+    nl_env = CoinGamePPO(batch_size, inner_ep_len, grid_size=args.grid_size)
 
     # training loop
     for i_episode in range(1, max_episodes + 1):

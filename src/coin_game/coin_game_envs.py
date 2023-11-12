@@ -117,8 +117,8 @@ class CoinGameGPU:
 
 
 class SymmetricCoinGame:
-    def __init__(self, b, inner_ep_len, gamma_inner=0.96):
-        self.env = CoinGameGPU(max_steps=inner_ep_len - 1, batch_size=b)
+    def __init__(self, b, inner_ep_len, gamma_inner=0.96, grid_size: int = 3):
+        self.env = CoinGameGPU(max_steps=inner_ep_len - 1, batch_size=b, grid_size=grid_size)
         self.inner_ep_len = inner_ep_len
         self.b = b
 
