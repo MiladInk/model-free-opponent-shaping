@@ -12,9 +12,14 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--exp-name", type=str, default="milad_self")
 parser.add_argument("--grid-size", type=int, default=3)
+parser.add_argument("--seed", type=int, default=0)
 args = parser.parse_args()
 
 if __name__ == "__main__":
+    # seed torch
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    np.random.seed(args.seed)
     ############## Hyperparameters ##############
     batch_size = 8  # 8192 #, 32768
     state_dim = [7, args.grid_size, args.grid_size]
