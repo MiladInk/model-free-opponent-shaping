@@ -250,6 +250,8 @@ if __name__ == "__main__":
                 }
             )
         print(rew_means[-1])
+        rew_means.append({"walltime": time.time() - start_time})
+        print(rew_means[-1])
         if i_episode % save_freq == 0:
             rew_means.append(evaluate_agent_0_against_always_defect())
             rew_means.append({"walltime": time.time() - start_time})
