@@ -31,7 +31,7 @@ if __name__ == "__main__":
     gamma = 0.995  # discount factor
     tau = 0.3  # GAE
 
-    traj_length = 16
+    traj_length = 50
 
     save_freq = 1
     K_epochs = 16  # update policy for K epochs
