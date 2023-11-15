@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     traj_length = 50
 
-    save_freq = 1
+    save_freq = 50
     K_epochs = 16  # update policy for K epochs
     eps_clip = 0.2  # clip parameter for PPO
     use_gae = False
