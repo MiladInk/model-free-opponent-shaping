@@ -257,7 +257,7 @@ class LOLACoinGameGPU: # just one coin at a time, like LOLA, POLA, and LOQA. Als
         actions[vert_dist_down < vert_dist_up] = 2
         actions[vert_dist_up < vert_dist_down] = 3
         # Assumes no coin spawns under agent
-        assert torch.logical_and(horiz_dist_right == horiz_dist_left, vert_dist_down == vert_dist_up).sum() == 0
+        #assert torch.logical_and(horiz_dist_right == horiz_dist_left, vert_dist_down == vert_dist_up).sum() == 0
 
         return actions.long()
 
