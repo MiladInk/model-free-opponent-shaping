@@ -1,3 +1,5 @@
+import time
+
 import torch
 import os
 import json
@@ -14,7 +16,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     ############## Hyperparameters ##############
-    batch_size = 512  # 8192 #, 32768
+    batch_size = 8  # 8192 #, 32768
     state_dim = [7, args.grid_size, args.grid_size]
     action_dim = 4
     n_latent_var = 16  # number of variables in hidden layer
@@ -31,7 +33,7 @@ if __name__ == "__main__":
 
     traj_length = 16
 
-    save_freq = 50
+    save_freq = 1
     K_epochs = 16  # update policy for K epochs
     eps_clip = 0.2  # clip parameter for PPO
     use_gae = False
@@ -63,10 +65,11 @@ if __name__ == "__main__":
     # running_reward = 0
     rew_means = []
 
-    env = SymmetricCoinGame(batch_size, inner_ep_len, grid_size=args.grid_size)
+    env = SymmetricCoinGame(batch_size, inner_ep_len, grid_size=args.grid_size, coin_game_type='lola')
     # env
-    nl_env = CoinGamePPO(batch_size, inner_ep_len, grid_size=args.grid_size)
+    nl_env = CoinGamePPO(batch_size, inner_ep_len, grid_size=args.grid_size, coin_game_type='lola')
 
+    start_time = time.time()
     # training loop
     for i_episode in range(1, max_episodes + 1):
         print("=" * 10)
@@ -76,12 +79,54 @@ if __name__ == "__main__":
         if lamb > 0:
             lamb -= lamb_anneal
 
+        def evaluate_agent_0_against_always_defect():
+            state_0, state_1 = env.reset()
+
+            running_reward_0 = torch.zeros(batch_size).to(device)
+            running_reward_1 = torch.zeros(batch_size).to(device)
+
+            p1_num_opp, p2_num_opp, p1_num_self, p2_num_self = 0, 0, 0, 0
+            for t in range(num_steps):
+                # Running policy_old:
+                if t % inner_ep_len == 0:
+                    ppo_0.policy_old.reset(memory_0, t == 0)
+
+                with torch.no_grad():
+                    action_0 = ppo_0.policy_old.act(state_0.detach())
+                    action_1 = env.env.get_moves_shortest_path_to_coin(red_agent_perspective=False)
+                states, rewards, info_2 = env.step([action_0, action_1])
+                state_0, state_1 = states
+                reward_0, reward_1 = rewards
+
+                running_reward_0 += reward_0.squeeze(-1)
+                running_reward_1 += reward_1.squeeze(-1)
+
+                memory_0.rewards.append(reward_0.detach())
+
+                if info_2 is not None:
+                    p1_num_opp += info_2[1]
+                    p2_num_opp += info_2[2]
+                    p2_num_self += info_2[3]
+                    p1_num_self += info_2[0]
+
+            ppo_0.policy_old.reset(memory_0)
+
+            memory_0.clear_memory()
+            return {
+                    'ad_reward_agent_0_against_always_defect': running_reward_0.mean().item(),
+                    'ad_reward_always_defect_against_agent0': running_reward_1.mean().item(),
+                    'ad_agent0_takes_always_defect_coin': p1_num_opp.float().mean().item(),
+                    'ad_agent0_takes_agent0_coin': p1_num_self.float().mean().item(),
+                    'ad_always_defect_takes_agent0_coin': p2_num_opp.float().mean().item(),
+                    'ad_always_defect_takes_always_defect_coin': p2_num_self.float().mean().item(),
+                    }
+
         if np.random.random() > lamb:
             print("v opponent")
             state_0, state_1 = env.reset()
 
-            running_reward_0 = torch.zeros(batch_size).cuda()
-            running_reward_1 = torch.zeros(batch_size).cuda()
+            running_reward_0 = torch.zeros(batch_size).to(device)
+            running_reward_1 = torch.zeros(batch_size).to(device)
             p1_num_opp, p2_num_opp, p1_num_self, p2_num_self = 0, 0, 0, 0
             for t in range(num_steps):
                 # Running policy_old:
@@ -103,10 +148,10 @@ if __name__ == "__main__":
                 memory_1.rewards.append(reward_1.detach())
 
                 if info_2 is not None:
-                    p1_num_opp += info_2[2]
-                    p2_num_opp += info_2[1]
-                    p1_num_self += info_2[3]
-                    p2_num_self += info_2[0]
+                    p1_num_opp += info_2[1]
+                    p2_num_opp += info_2[2]
+                    p2_num_self += info_2[3]
+                    p1_num_self += info_2[0]
 
             ppo_0.policy_old.reset(memory_0)
             ppo_1.policy_old.reset(memory_1)
@@ -116,6 +161,7 @@ if __name__ == "__main__":
 
             memory_0.clear_memory()
             memory_1.clear_memory()
+
 
             # print(f"reward 0: {running_reward_0.mean()}")
             # print(f"reward 1: {running_reward_1.mean()}")
@@ -132,11 +178,13 @@ if __name__ == "__main__":
                 }
             )
         else:
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             state = nl_env.reset()
-            running_reward_0 = torch.zeros(batch_size).cuda()
-            opp_running_reward_0 = torch.zeros(batch_size).cuda()
+            running_reward_0 = torch.zeros(batch_size).to(device)
+            opp_running_reward_0 = torch.zeros(batch_size).to(device)
             p1_num_opp_0, p2_num_opp_0, p1_num_self_0, p2_num_self_0 = 0, 0, 0, 0
             for t in range(num_steps):
+                print(f't: {t}')
                 # Running policy_old:
                 if t % inner_ep_len == 0:
                     ppo_0.policy_old.reset(memory_0, t == 0)
@@ -157,8 +205,8 @@ if __name__ == "__main__":
             memory_0.clear_memory()
 
             state = nl_env.reset()
-            running_reward_1 = torch.zeros(batch_size).cuda()
-            opp_running_reward_1 = torch.zeros(batch_size).cuda()
+            running_reward_1 = torch.zeros(batch_size).to(device)
+            opp_running_reward_1 = torch.zeros(batch_size).to(device)
             p1_num_opp_1, p2_num_opp_1, p1_num_self_1, p2_num_self_1 = 0, 0, 0, 0
             for t in range(num_steps):
                 # Running policy_old:
@@ -198,8 +246,10 @@ if __name__ == "__main__":
                 }
             )
         print(rew_means[-1])
-
         if i_episode % save_freq == 0:
+            rew_means.append(evaluate_agent_0_against_always_defect())
+            rew_means.append({"walltime": time.time() - start_time})
+            print(rew_means[-1])
             ppo_0.save(os.path.join(name, f"{i_episode}_0.pth"))
             ppo_1.save(os.path.join(name, f"{i_episode}_1.pth"))
             with open(os.path.join(name, f"out_{i_episode}.json"), "w") as f:
