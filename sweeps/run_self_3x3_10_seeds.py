@@ -24,7 +24,7 @@ def run_job(command, fake_submit: bool = True, partition: str = 'long'):
         os.system(command)
 
 def main(seeds, sizes, fake_submit: bool = True, partition='long'):
-    command = "python src/coin_game/main_mfos_self_coin_game.py --exp-name milad_self_{size}x{size}_{seed} --grid-size {size}"
+    command = "python src/coin_game/main_mfos_self_coin_game.py --exp-name new_self_{size}x{size}_{seed} --grid-size {size}"
     for size in sizes:
         for seed in seeds:
             run_job(command=command.format(seed=seed, size=size), fake_submit=fake_submit, partition=partition)
