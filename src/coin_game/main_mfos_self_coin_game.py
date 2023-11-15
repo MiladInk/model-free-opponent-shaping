@@ -189,7 +189,6 @@ if __name__ == "__main__":
             opp_running_reward_0 = torch.zeros(batch_size).to(device)
             p1_num_opp_0, p2_num_opp_0, p1_num_self_0, p2_num_self_0 = 0, 0, 0, 0
             for t in range(num_steps):
-                print(f't: {t}')
                 # Running policy_old:
                 if t % inner_ep_len == 0:
                     ppo_0.policy_old.reset(memory_0, t == 0)
