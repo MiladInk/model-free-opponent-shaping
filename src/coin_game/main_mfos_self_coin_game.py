@@ -251,3 +251,4 @@ if __name__ == "__main__":
             print(f"SAVING! {i_episode}")
 
         print(f"stats: {stats}")
+        del stats
