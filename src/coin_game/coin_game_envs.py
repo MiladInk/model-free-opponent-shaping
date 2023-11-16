@@ -161,8 +161,8 @@ class LOLACoinGameGPU: # just one coin at a time, like LOLA, POLA, and LOQA. Als
         mask_flat = torch.zeros((self.batch_size, self.grid_size * self.grid_size)).to(device)
         red_pos_flat = self.red_pos[:, 0] * self.grid_size + self.red_pos[:, 1]
         blue_pos_flat = self.blue_pos[:, 0] * self.grid_size + self.blue_pos[:, 1]
-        mask_flat.scatter_(1, red_pos_flat[:, None], 1)
-        mask_flat.scatter_(1, blue_pos_flat[:, None], 1)
+        mask_flat = mask_flat.scatter_(1, red_pos_flat[:, None], 1)
+        mask_flat = mask_flat.scatter_(1, blue_pos_flat[:, None], 1)
         unoccupied_pos_flat = 1 - mask_flat
         random_pos = []
         for i in range(self.batch_size):

@@ -8,7 +8,6 @@ from coin_game_envs import CoinGamePPO, SymmetricCoinGame
 from coin_game_mfos_agent import MemoryMFOS, PPOMFOS
 import argparse
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--exp-name", type=str, default="milad_self")
 parser.add_argument("--grid-size", type=int, default=3)
@@ -36,7 +35,7 @@ if __name__ == "__main__":
     gamma = 0.995  # discount factor
     tau = 0.3  # GAE
 
-    traj_length = 50
+    traj_length = 16
 
     save_freq = 50
     K_epochs = 16  # update policy for K epochs
@@ -66,9 +65,6 @@ if __name__ == "__main__":
 
     print(lr, betas)
     print(sum(p.numel() for p in ppo_0.policy_old.parameters() if p.requires_grad))
-    # logging variables
-    # running_reward = 0
-    rew_means = []
 
     env = SymmetricCoinGame(batch_size, inner_ep_len, grid_size=args.grid_size, coin_game_type='lola')
     # env
@@ -83,6 +79,7 @@ if __name__ == "__main__":
 
         if lamb > 0:
             lamb -= lamb_anneal
+
 
         def evaluate_agent_0_against_always_defect():
             state_0, state_1 = env.reset()
@@ -118,13 +115,14 @@ if __name__ == "__main__":
 
             memory_0.clear_memory()
             return {
-                    'ad_reward_agent_0_against_always_defect': running_reward_0.mean().item(),
-                    'ad_reward_always_defect_against_agent0': running_reward_1.mean().item(),
-                    'ad_agent0_takes_always_defect_coin': p1_num_opp.float().mean().item(),
-                    'ad_agent0_takes_agent0_coin': p1_num_self.float().mean().item(),
-                    'ad_always_defect_takes_agent0_coin': p2_num_opp.float().mean().item(),
-                    'ad_always_defect_takes_always_defect_coin': p2_num_self.float().mean().item(),
-                    }
+                'ad_reward_agent_0_against_always_defect': running_reward_0.mean().item(),
+                'ad_reward_always_defect_against_agent0': running_reward_1.mean().item(),
+                'ad_agent0_takes_always_defect_coin': p1_num_opp.float().mean().item(),
+                'ad_agent0_takes_agent0_coin': p1_num_self.float().mean().item(),
+                'ad_always_defect_takes_agent0_coin': p2_num_opp.float().mean().item(),
+                'ad_always_defect_takes_always_defect_coin': p2_num_self.float().mean().item(),
+            }
+
 
         if np.random.random() > lamb:
             print("v opponent")
@@ -167,21 +165,16 @@ if __name__ == "__main__":
             memory_0.clear_memory()
             memory_1.clear_memory()
 
-
-            # print(f"reward 0: {running_reward_0.mean()}")
-            # print(f"reward 1: {running_reward_1.mean()}")
-            rew_means.append(
-                {
-                    "ep": i_episode,
-                    "other": True,
-                    "reward 0": running_reward_0.mean().item(),
-                    "reward 1": running_reward_1.mean().item(),
-                    "p1_opp": p1_num_opp.float().mean().item(),
-                    "p2_opp": p2_num_opp.float().mean().item(),
-                    "p1_self": p1_num_self.float().mean().item(),
-                    "p2_self": p2_num_self.float().mean().item(),
-                }
-            )
+            stats = {
+                "ep": i_episode,
+                "other": True,
+                "reward 0": running_reward_0.mean().item(),
+                "reward 1": running_reward_1.mean().item(),
+                "p1_opp": p1_num_opp.float().mean().item(),
+                "p2_opp": p2_num_opp.float().mean().item(),
+                "p1_self": p1_num_self.float().mean().item(),
+                "p2_self": p2_num_self.float().mean().item(),
+            }
         else:
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             state = nl_env.reset()
@@ -231,33 +224,30 @@ if __name__ == "__main__":
             ppo_1.policy_old.reset(memory_1)
             ppo_1.update(memory_1)
             memory_1.clear_memory()
-            rew_means.append(
-                {
-                    "ep": i_episode,
-                    "other": False,
-                    "reward 0": running_reward_0.mean().item(),
-                    "reward 1": running_reward_1.mean().item(),
-                    "opp reward 0": opp_running_reward_0.mean().item(),
-                    "opp reward 1": opp_running_reward_1.mean().item(),
-                    "p1_num_opp_0": p1_num_opp_0.float().mean().item(),
-                    "p2_num_opp_0": p2_num_opp_0.float().mean().item(),
-                    "p1_num_self_0": p1_num_self_0.float().mean().item(),
-                    "p2_num_self_0": p2_num_self_0.float().mean().item(),
-                    "p1_num_opp_1": p1_num_opp_1.float().mean().item(),
-                    "p2_num_opp_1": p2_num_opp_1.float().mean().item(),
-                    "p1_num_self_1": p1_num_self_1.float().mean().item(),
-                    "p2_num_self_1": p2_num_self_1.float().mean().item(),
-                }
-            )
-        print(rew_means[-1])
-        rew_means.append({"walltime": time.time() - start_time})
-        print(rew_means[-1])
+            stats = {
+                "ep": i_episode,
+                "other": False,
+                "reward 0": running_reward_0.mean().item(),
+                "reward 1": running_reward_1.mean().item(),
+                "opp reward 0": opp_running_reward_0.mean().item(),
+                "opp reward 1": opp_running_reward_1.mean().item(),
+                "p1_num_opp_0": p1_num_opp_0.float().mean().item(),
+                "p2_num_opp_0": p2_num_opp_0.float().mean().item(),
+                "p1_num_self_0": p1_num_self_0.float().mean().item(),
+                "p2_num_self_0": p2_num_self_0.float().mean().item(),
+                "p1_num_opp_1": p1_num_opp_1.float().mean().item(),
+                "p2_num_opp_1": p2_num_opp_1.float().mean().item(),
+                "p1_num_self_1": p1_num_self_1.float().mean().item(),
+                "p2_num_self_1": p2_num_self_1.float().mean().item(),
+            }
+        stats.update({"walltime": time.time() - start_time})
         if i_episode % save_freq == 0:
-            rew_means.append(evaluate_agent_0_against_always_defect())
-            rew_means.append({"walltime": time.time() - start_time})
-            print(rew_means[-1])
+            stats.update(evaluate_agent_0_against_always_defect())
+            stats.update({"walltime": time.time() - start_time})
             ppo_0.save(os.path.join(name, f"{i_episode}_0.pth"))
             ppo_1.save(os.path.join(name, f"{i_episode}_1.pth"))
             with open(os.path.join(name, f"out_{i_episode}.json"), "w") as f:
-                json.dump(rew_means, f)
+                json.dump(stats, f)
             print(f"SAVING! {i_episode}")
+
+        print(f"stats: {stats}")
