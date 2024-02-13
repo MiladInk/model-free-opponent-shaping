@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # traj_length = 32
 
-    max_episodes = 1000  # max training episodes
+    max_episodes = 10000  # max training episodes
     log_interval = 50
 
     lr = 0.0002
